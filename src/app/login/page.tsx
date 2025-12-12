@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,14 +27,17 @@ export default function LoginPage() {
       return;
     }
 
+    // Login ok → dashboard
     window.location.href = "/dashboard";
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-xl border p-6 shadow-sm">
+      <div className="w-full max-w-md rounded-xl border bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
-        <p className="text-sm text-gray-500 mt-1">Accede al sistema del PH</p>
+        <p className="mt-1 text-sm text-gray-600">
+          Accede a la plataforma del PH
+        </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
@@ -45,6 +49,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
+              autoComplete="email"
             />
           </div>
 
@@ -57,6 +62,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              autoComplete="current-password"
             />
           </div>
 
@@ -67,8 +73,9 @@ export default function LoginPage() {
           )}
 
           <button
+            type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-black text-white py-2 font-medium disabled:opacity-60"
+            className="w-full rounded-lg bg-black py-2 font-medium text-white disabled:opacity-60"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
