@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const [email, setEmail] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
 
   useEffect(() => {
     const run = async () => {
@@ -20,6 +21,9 @@ export default function DashboardPage() {
 
     run();
   }, []);
+
+  const changePassword = async () => {
+  };
 
   const logout = async () => {
     await supabase.auth.signOut();
