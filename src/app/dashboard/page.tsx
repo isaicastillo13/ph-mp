@@ -4,26 +4,18 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
-  const [email, setEmail] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string>("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    const run = async () => {
-      const { data } = await supabase.auth.getUser();
-
+    supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
         window.location.href = "/login";
         return;
       }
 
       setEmail(data.user.email ?? "");
-    };
-
-    run();
+    });
   }, []);
-
-  const changePassword = async () => {
-  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -32,19 +24,15 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <button
-          onClick={logout}
-          className="rounded-lg border px-3 py-2 text-sm"
-        >
-          Cerrar sesión
-        </button>
-      </div>
+      <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-      <p className="mt-4 text-gray-600">
-        Sesión activa como: <span className="font-medium">{email}</span>
+      <p className="mt-2 text-gray-600">
+        Sesión activa como: <strong>{email}</strong>
       </p>
+
+      <button onClick={logout} className="mt-6 border px-4 py-2 rounded">
+        Cerrar sesión
+      </button>
     </div>
   );
 }
