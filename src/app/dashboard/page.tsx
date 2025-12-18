@@ -22,6 +22,10 @@ export default function DashboardPage() {
     window.location.href = "/login";
   };
 
+  const newPh = () => {
+    window.location.href = "/ph/new";
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -32,6 +36,10 @@ export default function DashboardPage() {
 
       <button onClick={logout} className="mt-6 border px-4 py-2 rounded">
         Cerrar sesión
+      </button>
+
+      <button onClick={newPh} className="mt-6 border px-4 py-2 rounded">
+        Crear Nuevo PH
       </button>
     </div>
   );
