@@ -7,11 +7,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { create } from "node:domain";
 
+// esuema del formulario
 const phSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   address: z.string().min(1, "La dirección es obligatoria"),
 });
 
+// validar si el usuario está autenticado
 export default function NewPHPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -22,6 +24,7 @@ export default function NewPHPage() {
     });
   }, []);
 
+  
   const from = useForm({
     resolver: zodResolver(phSchema),
   });
