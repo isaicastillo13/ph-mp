@@ -12,6 +12,15 @@ const phSchema = z.object({
 });
 
 export default function NewPHPage() {
+     useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        window.location.href = "/login";
+        return;
+      }
+    });
+  }, []);
+
   const from = useForm({
     resolver: zodResolver(phSchema),
   });
