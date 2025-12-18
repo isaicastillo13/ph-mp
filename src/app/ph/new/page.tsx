@@ -6,6 +6,17 @@ import { supabase } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { create } from "node:domain";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
 // esuema del formulario
 const phSchema = z.object({
@@ -24,7 +35,6 @@ export default function NewPHPage() {
     });
   }, []);
 
-  
   const from = useForm({
     resolver: zodResolver(phSchema),
   });
@@ -53,42 +63,44 @@ export default function NewPHPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-md mx-auto">
       <h1 className="text-2xl font-semibold mb-4">Crear Nueva PH</h1>
-      <form onSubmit={from.handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="block mb-1">Nombre:</label>
-          <input
-            type="text"
-            {...from.register("name")}
-            className="w-full border px-3 py-2 rounded"
-          />
-          {from.formState.errors.name && (
-            <p className="text-red-500 text-sm mt-1">
-              {from.formState.errors.name.message}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block mb-1">Dirección:</label>
-          <input
-            type="text"
-            {...from.register("address")}
-            className="w-full border px-3 py-2 rounded"
-          />
-          {from.formState.errors.address && (
-            <p className="text-red-500 text-sm mt-1">
-              {from.formState.errors.address.message}
-            </p>
-          )}
-        </div>
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Crear PH
-        </button>
-      </form>
+      <Form {...from}>
+        <form onSubmit={from.handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label className="block mb-1">Nombre:</label>
+            <Input
+              type="text"
+              {...from.register("name")}
+              className="w-full border px-3 py-2 rounded"
+            />
+            {from.formState.errors.name && (
+              <p className="text-red-500 text-sm mt-1">
+                {from.formState.errors.name.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block mb-1">Dirección:</label>
+            <Input
+              type="text"
+              {...from.register("address")}
+              className="w-full border px-3 py-2 rounded"
+            />
+            {from.formState.errors.address && (
+              <p className="text-red-500 text-sm mt-1">
+                {from.formState.errors.address.message}
+              </p>
+            )}
+          </div>
+          <Button
+            type="submit"
+            // className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Crear PH
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 }
