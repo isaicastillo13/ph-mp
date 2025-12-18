@@ -9,8 +9,10 @@ export async function GET(request: Request) {
   const loginPath = "/login";
   const changePasswordPath = "/change-password";
 
+  // Funciones
   const supabase = await createSupabaseServerClient();
 
+  // Desducturacion
   const {
     data: { user },
     error: userError,

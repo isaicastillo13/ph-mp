@@ -20,13 +20,24 @@ export default function ChangePasswordPage() {
       password: newPassword,
     });
 
+    change_flag();
+
     if (error) {
       alert(error.message);
       return;
     }
 
-    // Aquí luego marcas must_change_password = false (server)
     window.location.href = "/auth/callback?next=/dashboard";
+  };
+
+  const change_flag = async () => {
+    const { data } = await supabase.auth.getUser(); //consulto el usuario que tengo logueado
+    if (data.user) {
+      await supabase
+        .from("profiles")
+        .update({ must_change_password: false })
+        .eq("id", data.user.id);
+    }
   };
 
   return (
