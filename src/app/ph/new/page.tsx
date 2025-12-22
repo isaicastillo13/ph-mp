@@ -67,7 +67,7 @@ export default function NewPHPage() {
       alert("Error al crear el PH: " + error.message);
       return;
     }
-    router.push(`/ph/${ph.id}/floors`);
+    router.push(`/ph/${ph.id}/floor`);
     alert("PH creada con éxito");
     from.reset();
   };
