@@ -17,6 +17,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import * as React from "react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
 // esuema del formulario
@@ -64,18 +74,112 @@ export default function NewFloorPage() {
     <div className="max-w-md mx-auto mt-10">
       <Form {...from}>
         <form onSubmit={from.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex items-center gap-3">
-            <Checkbox id="terms" defaultChecked/>
-            <FormLabel htmlFor="terms">El primer piso del Ph es PB</FormLabel>
-          </div>
-          <div className="flex items-center gap-3">
-            <Checkbox id="terms2"/>
-            <FormLabel htmlFor="terms">Area Social</FormLabel>
-          </div>
-          <div className="flex items-center gap-3">
-            <Checkbox id="terms3"/>
-            <FormLabel htmlFor="terms">Sotano</FormLabel>
-          </div>
+
+
+          <FormField
+            control={from.control}
+            name="order_index"
+            render={({ field }) => (
+              <Select>
+                <FormLabel>El Primer piso es planta baja?</FormLabel>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="si">Si</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+
+          <FormField
+            control={from.control}
+            name="order_index"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nombre del primer piso</FormLabel>
+                <FormControl>
+                  <Input placeholder="Planta Baja, etc" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={from.control}
+            name="order_index"
+            render={({ field }) => (
+              <Select>
+                <FormLabel>Tiene Sotano o Piso de Parking?</FormLabel>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="si">Si</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+
+          <FormField
+            control={from.control}
+            name="order_index"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Numero de Pisos</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Cantidad de Pisos"
+                    {...field}
+                    type="number"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={from.control}
+            name="order_index"
+            render={({ field }) => (
+              <Select>
+                <FormLabel>Tiene Area Social?</FormLabel>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="si">Si</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+
+          <FormField
+            control={from.control}
+            name="order_index"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Numero de area Social</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Cantidad de Area Social"
+                    {...field}
+                    type="number"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={from.control}
             name="label"
@@ -83,7 +187,7 @@ export default function NewFloorPage() {
               <FormItem>
                 <FormLabel>Pisos del Ph</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ingrese la cantidad" {...field} />
+                  <Input placeholder="Cantidad de Pisos" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
