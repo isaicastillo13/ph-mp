@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { create } from "node:domain";
@@ -17,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Router } from "next/router";
 
 // esuema del formulario
 const phSchema = z.object({
@@ -26,6 +28,8 @@ const phSchema = z.object({
 
 // validar si el usuario está autenticado
 export default function NewPHPage() {
+  const router = useRouter();
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
@@ -39,6 +43,8 @@ export default function NewPHPage() {
     resolver: zodResolver(phSchema),
   });
 
+  
+
   const onSubmit = async (data: z.infer<typeof phSchema>) => {
     const { data: authData, error: authError } = await supabase.auth.getUser();
 
@@ -48,16 +54,20 @@ export default function NewPHPage() {
     }
 
     console.log("|-----Creating PH with data:-----|", authData.user?.id);
-    const { data: ph, error } = await supabase.from("phs").insert({
-      name: data.name,
-      address: data.address,
-    });
+    const { data: ph, error } = await supabase
+      .from("phs")
+      .insert({
+        name: data.name,
+        address: data.address,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       alert("Error al crear el PH: " + error.message);
       return;
     }
-
+    router.push(`/ph/${ph.id}/floors`);
     alert("PH creada con éxito");
     from.reset();
   };
