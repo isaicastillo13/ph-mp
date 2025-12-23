@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { supabase } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -14,90 +15,246 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
-// Esquema del formulario
-const phSchema = z.object({
-  firstFloorIsGround: z.enum(["si", "no", "system"]),
-  firstFloorName: z.string().min(1, "El nombre es obligatorio"),
-  hasBasement: z.enum(["si", "no", "system"]),
-  floorsCount: z.number().min(1, "Debe tener al menos 1 piso"),
-  hasSocialArea: z.enum(["si", "no", "system"]),
-  socialAreaCount: z.number().min(0, "No puede ser negativo"),
-  label: z.string().min(1, "El label es obligatorio"),
+type FloorRow = {
+  ph_id: string;
+  label: string;
+  order_index: number;
+};
+
+// ✅ Esquema del generador (SIN z.coerce)
+const generatorSchema = z.object({
+  pbName: z.string().min(1, "El nombre de PB es obligatorio"),
+  floorsCount: z.number().int().min(1, "Debe tener al menos 1 piso"),
+  basementsCount: z.number().int().min(0, "No puede ser negativo"),
+  socialAreasCount: z.number().int().min(0, "No puede ser negativo"),
 });
 
-export default function NewFloorPage() {
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) window.location.href = "/login";
-    });
-  }, []);
+type GeneratorValues = z.infer<typeof generatorSchema>;
 
-  const form = useForm<z.infer<typeof phSchema>>({
-    resolver: zodResolver(phSchema),
+export default function FloorsGeneratorPage() {
+  const router = useRouter();
+  const params = useParams<{ phId: string }>();
+  const phId = params?.phId;
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
+  const [hasExistingFloors, setHasExistingFloors] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!phId) return;
+
+      setCheckingExisting(true);
+      const { count, error } = await supabase
+        .from("floors")
+        .select("id", { count: "exact", head: true })
+        .eq("ph_id", phId);
+
+      if (!error && (count ?? 0) > 0) setHasExistingFloors(true);
+      setCheckingExisting(false);
+    };
+
+    run();
+  }, [phId]);
+
+  const form = useForm<GeneratorValues>({
+    resolver: zodResolver(generatorSchema),
     defaultValues: {
-      firstFloorIsGround: "si",
-      firstFloorName: "",
-      hasBasement: "no",
+      pbName: "PB",
       floorsCount: 1,
-      hasSocialArea: "no",
-      socialAreaCount: 0,
-      label: "",
+      basementsCount: 0,
+      socialAreasCount: 0,
     },
+    mode: "onChange",
   });
 
-  const onSubmit = async (data: z.infer<typeof phSchema>) => {
+  const values = form.watch();
+
+  // ✅ Construir preview (sin guardar)
+  const previewRows = useMemo<FloorRow[]>(() => {
+    if (!phId) return [];
+
+    const rows: FloorRow[] = [];
+
+    // Sótanos: S1..Sn (orden negativo)
+    for (let i = 1; i <= values.basementsCount; i++) {
+      rows.push({
+        ph_id: phId,
+        label: `S${i}`,
+        order_index: -i,
+      });
+    }
+
+    // PB: order 0
+    rows.push({
+      ph_id: phId,
+      label: values.pbName.trim(),
+      order_index: 0,
+    });
+
+    // Pisos: 1..N (orden 1..N)
+    for (let i = 1; i <= values.floorsCount; i++) {
+      rows.push({
+        ph_id: phId,
+        label: String(i),
+        order_index: i,
+      });
+    }
+
+    // Áreas sociales: AS1..ASn (al final)
+    for (let i = 1; i <= values.socialAreasCount; i++) {
+      rows.push({
+        ph_id: phId,
+        label: `AS${i}`,
+        order_index: values.floorsCount + i,
+      });
+    }
+
+    return rows.sort((a, b) => a.order_index - b.order_index);
+  }, [
+    phId,
+    values.pbName,
+    values.floorsCount,
+    values.basementsCount,
+    values.socialAreasCount,
+  ]);
+
+  const disabled = isSubmitting || checkingExisting || hasExistingFloors;
+
+  const onSubmit: SubmitHandler<GeneratorValues> = async (data) => {
+    if (!phId) {
+      alert("No se encontró el PH en la URL (phId).");
+      return;
+    }
+
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError || !authData.user) {
       window.location.href = "/login";
       return;
     }
-    const { error } = await supabase.from("floors").insert({
-      ...data,
-      user_id: authData.user.id,
-    });
-    if (error) {
-      form.setError("label", { message: error.message });
+
+    setIsSubmitting(true);
+
+    try {
+      // Evitar duplicados
+      const { count } = await supabase
+        .from("floors")
+        .select("id", { count: "exact", head: true })
+        .eq("ph_id", phId);
+
+      if ((count ?? 0) > 0) {
+        alert(
+          "Este PH ya tiene pisos creados. Para evitar duplicados, no se generará de nuevo."
+        );
+        setHasExistingFloors(true);
+        return;
+      }
+
+      // ✅ Generar filas (batch insert)
+      const rows: FloorRow[] = [];
+
+      for (let i = 1; i <= data.basementsCount; i++) {
+        rows.push({ ph_id: phId, label: `S${i}`, order_index: -i });
+      }
+
+      rows.push({ ph_id: phId, label: data.pbName.trim(), order_index: 0 });
+
+      for (let i = 1; i <= data.floorsCount; i++) {
+        rows.push({ ph_id: phId, label: String(i), order_index: i });
+      }
+
+      for (let i = 1; i <= data.socialAreasCount; i++) {
+        rows.push({
+          ph_id: phId,
+          label: `AS${i}`,
+          order_index: data.floorsCount + i,
+        });
+      }
+
+      const { error } = await supabase.from("floors").insert(rows);
+
+      if (error) {
+        console.error("Error insertando estructura:", error);
+        form.setError("pbName", { message: error.message });
+        return;
+      }
+
+      alert("Estructura creada exitosamente ✅");
+      router.push(`/ph/${phId}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
+    <div className="max-w-md mx-auto mt-10 p-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Crear estructura de pisos</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Define cantidades. Si es 0, no se crea ese nivel.
+        </p>
+      </div>
+
+      {hasExistingFloors && (
+        <div className="rounded-lg border p-4 text-sm mb-6">
+          Este PH ya tiene estructura creada. El generador está bloqueado para
+          evitar duplicados.
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/ph/${phId}`)}
+            >
+              Volver al PH
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          {/* PB Name */}
           <FormField
             control={form.control}
-            name="firstFloorName"
+            name="pbName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nombre del primer piso</FormLabel>
+                <FormLabel>Nombre del primer nivel (PB)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Planta Baja, etc" {...field} />
+                  <Input
+                    placeholder="PB / Planta Baja"
+                    {...field}
+                    disabled={disabled}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          {/* Floors */}
           <FormField
             control={form.control}
             name="floorsCount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sotano o Parking</FormLabel>
+                <FormLabel>Cantidad de pisos</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Cantidad de Pisos"
-                    {...field}
+                    min={1}
+                    value={field.value}
+                    onChange={(e) =>
+                      field.onChange(Number(e.target.value || 0))
+                    }
+                    disabled={disabled}
                   />
                 </FormControl>
                 <FormMessage />
@@ -105,37 +262,84 @@ export default function NewFloorPage() {
             )}
           />
 
+          {/* Basements */}
           <FormField
             control={form.control}
-            name="socialAreaCount"
+            name="basementsCount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Area Social</FormLabel>
+                <FormLabel>Cantidad de sótanos</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Cantidad de Area Social"
-                    {...field}
+                    min={0}
+                    value={field.value}
+                    onChange={(e) =>
+                      field.onChange(Number(e.target.value || 0))
+                    }
+                    disabled={disabled}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* Social areas */}
           <FormField
             control={form.control}
-            name="label"
+            name="socialAreasCount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Pisos del Ph</FormLabel>
+                <FormLabel>Cantidad de áreas sociales</FormLabel>
                 <FormControl>
-                  <Input placeholder="Cantidad de Pisos" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    value={field.value}
+                    onChange={(e) =>
+                      field.onChange(Number(e.target.value || 0))
+                    }
+                    disabled={disabled}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit">Crear</Button>
+
+          {/* Preview */}
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="font-medium">Vista previa</div>
+            <div className="text-sm text-muted-foreground">
+              Se crearán {previewRows.length} niveles:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {previewRows.map((r) => (
+                <span
+                  key={`${r.order_index}-${r.label}`}
+                  className="text-xs rounded-md border px-2 py-1"
+                  title={`order: ${r.order_index}`}
+                >
+                  {r.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={disabled} className="flex-1">
+              {isSubmitting ? "Creando..." : "Crear estructura"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={disabled}
+            >
+              Cancelar
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
