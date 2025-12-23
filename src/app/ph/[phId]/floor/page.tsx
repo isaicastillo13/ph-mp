@@ -16,14 +16,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { es } from "zod/v4/locales";
 
+// Describe las filas de mi tabla
 type FloorRow = {
   ph_id: string;
   label: string;
   order_index: number;
 };
 
-// ✅ Esquema del generador (SIN z.coerce)
+
+// Reglas de los inputs del formulario
 const generatorSchema = z.object({
   pbName: z.string().min(1, "El nombre de PB es obligatorio"),
   floorsCount: z.number().int().min(1, "Debe tener al menos 1 piso"),
@@ -35,6 +38,7 @@ type GeneratorValues = z.infer<typeof generatorSchema>;
 
 export default function FloorsGeneratorPage() {
   const router = useRouter();
+  // Obtiene el phid desde la url
   const params = useParams<{ phId: string }>();
   const phId = params?.phId;
 
@@ -43,6 +47,8 @@ export default function FloorsGeneratorPage() {
   const [hasExistingFloors, setHasExistingFloors] = useState(false);
 
   useEffect(() => {
+
+    // validar si el usuario está autenticado y si ya existen pisos  
     const run = async () => {
       const { data } = await supabase.auth.getUser();
       if (!data.user) {
@@ -50,13 +56,17 @@ export default function FloorsGeneratorPage() {
         return;
       }
 
-      if (!phId) return;
 
+      if (!phId) return;
+      // valido si ya exixten pisos
       setCheckingExisting(true);
+
       const { count, error } = await supabase
         .from("floors")
         .select("id", { count: "exact", head: true })
         .eq("ph_id", phId);
+
+        console.log("Existing floors check:", { count, error });
 
       if (!error && (count ?? 0) > 0) setHasExistingFloors(true);
       setCheckingExisting(false);
@@ -66,6 +76,7 @@ export default function FloorsGeneratorPage() {
   }, [phId]);
 
   const form = useForm<GeneratorValues>({
+    // Signo valores por defecto a mi esquema
     resolver: zodResolver(generatorSchema),
     defaultValues: {
       pbName: "PB",
@@ -73,12 +84,14 @@ export default function FloorsGeneratorPage() {
       basementsCount: 0,
       socialAreasCount: 0,
     },
+    // valida mientras escribe
     mode: "onChange",
   });
 
+  // valores en tiempo real
   const values = form.watch();
 
-  // ✅ Construir preview (sin guardar)
+  //Construir preview (sin guardar)
   const previewRows = useMemo<FloorRow[]>(() => {
     if (!phId) return [];
 
@@ -179,7 +192,9 @@ export default function FloorsGeneratorPage() {
         });
       }
 
-      const { error } = await supabase.from("floors").insert(rows);
+      const { error } = await supabase
+      .from("floors")
+      .insert(rows);
 
       if (error) {
         console.error("Error insertando estructura:", error);
@@ -210,7 +225,7 @@ export default function FloorsGeneratorPage() {
           <div className="mt-3 flex gap-2">
             <Button
               variant="outline"
-              onClick={() => router.push(`/ph/${phId}`)}
+              onClick={() => router.push(`ph/${phId}/apartment`)}
             >
               Volver al PH
             </Button>
