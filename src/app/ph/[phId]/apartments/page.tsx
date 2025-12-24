@@ -24,3 +24,12 @@ type ApartmentRow = {
     code: string;
     order_index: number;
 };
+
+const formSchema = z.object({
+    code: z.string().min(1, { message: "El código es obligatorio." }),
+    flor_id: z.string().min(1, { message: "El ID del piso es obligatorio." }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function ApartmentPage() {}
